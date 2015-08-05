@@ -1011,10 +1011,10 @@ reg_equi_class(c)
 		      REGMBC(0x107) REGMBC(0x109) REGMBC(0x10b)
 		      REGMBC(0x10d)
 		      return;
-	    case 'd': CASEMBC(0x10f) CASEMBC(0x111) CASEMBC(0x1d0b)
-	    CASEMBC(0x1e11)
+	    case 'd': CASEMBC(0x10f) CASEMBC(0x111) CASEMBC(0x1e0b)
+	    CASEMBC(0x1e0f) CASEMBC(0x1e11)
 		      regmbc('d'); REGMBC(0x10f) REGMBC(0x111)
-		      REGMBC(0x1e0b) REGMBC(0x01e0f) REGMBC(0x1e11)
+		      REGMBC(0x1e0b) REGMBC(0x1e0f) REGMBC(0x1e11)
 		      return;
 	    case 'e': case 0xe8: case 0xe9: case 0xea: case 0xeb:
 	    CASEMBC(0x113) CASEMBC(0x115) CASEMBC(0x117) CASEMBC(0x119)
@@ -1157,7 +1157,7 @@ get_coll_element(pp)
     int		l = 1;
     char_u	*p = *pp;
 
-    if (p[1] == '.')
+    if (p[0] != NUL && p[1] == '.')
     {
 #ifdef FEAT_MBYTE
 	if (has_mbyte)
@@ -1228,8 +1228,9 @@ skip_anyof(p)
 	{
 	    if (get_char_class(&p) == CLASS_NONE
 		    && get_equi_class(&p) == 0
-		    && get_coll_element(&p) == 0)
-		++p; /* It was not a class name */
+		    && get_coll_element(&p) == 0
+		    && *p != NUL)
+		++p; /* it is not a class name and not NUL */
 	}
 	else
 	    ++p;
@@ -3156,7 +3157,7 @@ peekchr()
 		    /*
 		     * META contains everything that may be magic sometimes,
 		     * except ^ and $ ("\^" and "\$" are only magic after
-		     * "\v").  We now fetch the next character and toggle its
+		     * "\V").  We now fetch the next character and toggle its
 		     * magicness.  Therefore, \ is so meta-magic that it is
 		     * not in META.
 		     */

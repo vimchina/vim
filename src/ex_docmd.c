@@ -2365,8 +2365,9 @@ do_one_cmd(cmdlinep, sourcing,
 	p = vim_strnsave(ea.cmd, (int)(p - ea.cmd));
 	ret = apply_autocmds(EVENT_CMDUNDEFINED, p, p, TRUE, NULL);
 	vim_free(p);
-	if (ret && !aborting())
-	    p = find_command(&ea, NULL);
+	/* If the autocommands did something and didn't cause an error, try
+	 * finding the command again. */
+	p = (ret && !aborting()) ? find_command(&ea, NULL) : NULL;
     }
 #endif
 
@@ -3128,8 +3129,8 @@ find_command(eap, full)
 	++p;
     }
     else if (p[0] == 's'
-	    && ((p[1] == 'c' && p[2] != 's' && p[2] != 'r'
-						&& p[3] != 'i' && p[4] != 'p')
+	    && ((p[1] == 'c' && (p[2] == NUL || (p[2] != 's' && p[2] != 'r'
+			&& (p[3] == NUL || (p[3] != 'i' && p[4] != 'p')))))
 		|| p[1] == 'g'
 		|| (p[1] == 'i' && p[2] != 'm' && p[2] != 'l' && p[2] != 'g')
 		|| p[1] == 'I'
@@ -7092,7 +7093,14 @@ ex_quit(eap)
     else
     {
 #ifdef FEAT_WINDOWS
-	if (only_one_window())	    /* quit last window */
+	/* quit last window
+	 * Note: only_one_window() returns true, even so a help window is
+	 * still open. In that case only quit, if no address has been
+	 * specified. Example:
+	 * :h|wincmd w|1q     - don't quit
+	 * :h|wincmd w|q      - quit
+	 */
+	if (only_one_window() && (firstwin == lastwin || eap->addr_count == 0))
 #endif
 	    getout(0);
 #ifdef FEAT_WINDOWS
@@ -10746,7 +10754,11 @@ arg_all()
 		}
 		for ( ; *p != NUL; ++p)
 		{
-		    if (*p == ' ' || *p == '\\')
+		    if (*p == ' '
+#ifndef BACKSLASH_IN_FILENAME
+			    || *p == '\\'
+#endif
+			    )
 		    {
 			/* insert a backslash */
 			if (retval != NULL)
@@ -12068,7 +12080,7 @@ ex_match(eap)
 
 	    c = *end;
 	    *end = NUL;
-	    match_add(curwin, g, p + 1, 10, id, NULL);
+	    match_add(curwin, g, p + 1, 10, id, NULL, NULL);
 	    vim_free(g);
 	    *end = c;
 	}
